@@ -1,0 +1,36 @@
+# Node modules
+node_modules/
+
+# Environment variables
+.env
+credentials.json
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# IDE/editor folders
+.vscode/
+.idea/
+
+# Build output (nếu có)
+dist/
+build/
+
+# PM2 logs (nếu dùng)
+pids
+*.pid
+*.seed
+
+# Others
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
