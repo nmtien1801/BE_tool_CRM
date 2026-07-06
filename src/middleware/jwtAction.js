@@ -39,8 +39,9 @@ const checkUserJwt = async (req, res, next) => {
 
   // Lấy chuỗi key xác thực gửi từ headers xuống
   const clientApiKey = req.headers["x-api-key"];
+  const currentSecretKey = process.env.API_SECRET_KEY;
 
-  if (clientApiKey && clientApiKey === BACKEND_SECRET_KEY) {
+  if (clientApiKey && clientApiKey === currentSecretKey) {
     // Nếu key chính xác hoàn toàn, cho phép đi tiếp vào controller
     next();
   } else {

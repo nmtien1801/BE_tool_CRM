@@ -1,182 +1,106 @@
-const CustomerService = require("../service/customerService");
-
-const createCustomer = async (req, res) => {
-  try {
-    let data = await CustomerService.createCustomer(req.body);
-
-    return res.status(200).json({
-      EM: data?.EM || "Create customer success",
-      EC: data?.EC || 0,
-      DT: data?.DT || data,
-    });
-  } catch (error) {
-    console.error("Error in createCustomer:", error);
-    return res.status(500).json({
-      EM: "Error from server",
-      EC: -1,
-      DT: "",
-    });
-  }
-};
+import db from "../models/index"; // Giả định dùng Sequelize ORM
 
 const getAllCustomers = async (req, res) => {
   try {
-    const page = Math.max(parseInt(req.query.page, 10) || 1, 1);
-    // Hỗ trợ nhận cả 'limit' hoặc 'size' từ Frontend gửi lên
-    const limit = Math.max(
-      parseInt(req.query.limit || req.query.size, 10) || 10,
-      1,
-    );
-    const offset = (page - 1) * limit;
+    // Nhận diện các query params từ FE gửi sang để thực hiện phân trang server-side
+    const page = parseInt(req.query.page, 10) || 1;
+    const pageSize = parseInt(req.query.pageSize, 10) || 5;
+    const search = req.query.search || "";
+    const label = req.query.label || "";
+    const ecosystem = req.query.ecosystem || "";
 
-    const { label, ecosystem } = req.query;
-    const filters = {};
-    if (label) filters.label = label;
-    if (ecosystem) filters.ecosystem = ecosystem;
+    const offset = (page - 1) * pageSize;
 
-    // Gọi xuống service lấy dữ liệu
-    const result = await CustomerService.getAllCustomers(
-      filters,
-      limit,
-      offset,
-    );
+    // Xây dựng điều kiện lọc dữ liệu
+    let whereClause = {};
+    if (label) whereClause.label = label;
+    if (ecosystem) whereClause.ecosystem = ecosystem;
+    if (search) {
+      whereClause[db.Sequelize.Op.or] = [
+        { fullName: { [db.Sequelize.Op.like]: `%${search}%` } },
+        { phone: { [db.Sequelize.Op.like]: `%${search}%` } },
+        { email: { [db.Sequelize.Op.like]: `%${search}%` } }
+      ];
+    }
 
-    // Chuẩn bị data phân trang trả về cho DT
-    const responseData = {
-      rows: result?.rows || [],
-      pagination: {
-        totalItems: result?.count || 0,
-        totalPages: Math.ceil((result?.count || 0) / limit),
-        currentPage: page,
-        pageSize: limit,
-      },
-    };
-
-    return res.status(200).json({
-      EM: "Get all customers success",
-      EC: 0,
-      DT: responseData,
+    // Thực hiện truy vấn đồng thời đếm tổng số lượng bản ghi thỏa điều kiện
+    const { count, rows } = await db.Customer.findAndCountAll({
+      where: whereClause,
+      limit: pageSize,
+      offset: offset,
+      order: [["createdAt", "DESC"]], 
     });
+
+    const totalPages = Math.ceil(count / pageSize) || 1;
+
+    // Trả về đúng định dạng chuẩn EM, EC, DT cho Frontend bóc tách
+    return res.status(200).json({
+      EM: "Tải danh sách khách hàng phân trang thành công!",
+      EC: 0,
+      DT: {
+        items: rows,         // Mảng danh sách chứa các object khách hàng
+        total: count,        // Tổng số dòng bản ghi gốc thỏa mãn bộ lọc
+        totalPages: totalPages // Tổng số lượng trang
+      }
+    });
+
   } catch (error) {
-    console.error("Error in getAllCustomers:", error); // Dòng này giúp bạn nhìn thấy lỗi 500 thực tế tại Terminal Backend
+    console.error("Lỗi getAllCustomers BE:", error);
     return res.status(500).json({
-      EM: "Error from server: " + error.message,
+      EM: "Lỗi máy chủ hệ thống không thể xử lý phân trang khách hàng",
       EC: -1,
-      DT: "",
+      DT: null
     });
   }
 };
 
 const getCustomerById = async (req, res) => {
   try {
-    let data = await CustomerService.getCustomerById(req.params.id);
-
-    if (!data) {
-      return res.status(200).json({
-        EM: "Customer not found",
-        EC: 1,
-        DT: "",
-      });
+    const customer = await db.Customer.findByPk(req.params.id);
+    if (!customer) {
+      return res.status(404).json({ EM: "Không tìm thấy thông tin khách hàng này!", EC: 1, DT: null });
     }
+    return res.status(200).json({ EM: "Lấy chi tiết khách hàng thành công!", EC: 0, DT: customer });
+  } catch (error) {
+    return res.status(500).json({ EM: "Lỗi hệ thống", EC: -1, DT: null });
+  }
+};
 
+const createCustomer = async (req, res) => {
+  try {
+    const newCustomer = await db.Customer.create(req.body);
     return res.status(200).json({
-      EM: "Get customer success",
+      EM: "Tạo mới tài khoản khách hàng thành công!",
       EC: 0,
-      DT: data,
+      DT: newCustomer // FE cần trường DT chứa object có ID vừa sinh ra để chạy bước kế tiếp
     });
   } catch (error) {
-    console.error("Error in getCustomerById:", error);
-    return res.status(500).json({
-      EM: "Error from server",
-      EC: -1,
-      DT: "",
-    });
+    return res.status(500).json({ EM: "Lỗi khi tạo mới khách hàng", EC: -1, DT: null });
   }
 };
 
 const updateCustomer = async (req, res) => {
   try {
-    let data = await CustomerService.updateCustomer(req.params.id, req.body);
-
-    return res.status(200).json({
-      EM: "Update customer success",
-      EC: 0,
-      DT: data,
-    });
+    await db.Customer.update(req.body, { where: { id: req.params.id } });
+    return res.status(200).json({ EM: "Cập nhật thông tin khách hàng hành chính thành công!", EC: 0, DT: "" });
   } catch (error) {
-    console.error("Error in updateCustomer:", error);
-    return res.status(500).json({
-      EM: "Error from server",
-      EC: -1,
-      DT: "",
-    });
-  }
-};
-
-const patchCustomer = async (req, res) => {
-  try {
-    let data = await CustomerService.updateCustomer(req.params.id, req.body);
-
-    return res.status(200).json({
-      EM: "Patch customer success",
-      EC: 0,
-      DT: data,
-    });
-  } catch (error) {
-    console.error("Error in patchCustomer:", error);
-    return res.status(500).json({
-      EM: "Error from server",
-      EC: -1,
-      DT: "",
-    });
-  }
-};
-
-const deletePurchaseHistory = async (req, res) => {
-  try {
-    const { id, historyId } = req.params;
-    let result = await CustomerService.deletePurchaseHistory(id, historyId);
-
-    return res.status(200).json({
-      EM: result?.EM || "Delete purchase history success",
-      EC: result?.EC || 0,
-      DT: result?.DT || "",
-    });
-  } catch (error) {
-    console.error("Error in deletePurchaseHistory:", error);
-    return res.status(500).json({
-      EM: "Error from server",
-      EC: -1,
-      DT: "",
-    });
+    return res.status(500).json({ EM: "Lỗi khi cập nhật dữ liệu khách hàng", EC: -1, DT: null });
   }
 };
 
 const deleteCustomer = async (req, res) => {
   try {
-    let result = await CustomerService.deleteCustomer(req.params.id);
-
-    return res.status(200).json({
-      EM: result?.EM || "Delete customer success",
-      EC: result?.EC || 0,
-      DT: result?.DT || "",
-    });
+    await db.Customer.destroy({ where: { id: req.params.id } });
+    return res.status(200).json({ EM: "Xóa thông tin khách hàng thành công!", EC: 0, DT: "" });
   } catch (error) {
-    console.error("Error in deleteCustomer:", error);
-    return res.status(500).json({
-      EM: "Error from server",
-      EC: -1,
-      DT: "",
-    });
+    return res.status(500).json({ EM: "Lỗi khi xóa khách hàng", EC: -1, DT: null });
   }
 };
 
-module.exports = {
-  createCustomer,
+export default {
   getAllCustomers,
   getCustomerById,
+  createCustomer,
   updateCustomer,
-  patchCustomer,
-  deletePurchaseHistory,
-  deleteCustomer,
+  deleteCustomer
 };

@@ -1,13 +1,12 @@
-require("dotenv").config();
+import "dotenv/config";
 import express from "express";
 import configCORS from "./config/cors";
 import cookieParser from "cookie-parser";
-import http from "http";
-const path = require("path");
 
 // Routers
 import authApi from "./router/authApi";
 import customerApi from "./router/customerApi";
+import PurchaseHistoryApi from "./router/purchaseHistoryApi";
 
 const app = express();
 
@@ -23,10 +22,11 @@ app.use(cookieParser());
 // 3. KHAI BÁO CÁC ROUTER HỆ THỐNG
 // ==========================================
 authApi(app);
+PurchaseHistoryApi(app);
 customerApi(app);
 
 // ==========================================
-// 4. KHỜI CHẠY SERVER
+// 4. KHỞI CHẠY SERVER
 // ==========================================
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {

@@ -8,12 +8,12 @@ const configCORS = (app) => {
     // Request methods bạn muốn cho phép
     res.setHeader(
       "Access-Control-Allow-Methods",
-      "GET, POST, OPTIONS, PUT, PATCH, DELETE"
+      "GET, POST, OPTIONS, PUT, PATCH, DELETE",
     );
     // Request tiêu đề bạn muốn cho phép
     res.setHeader(
       "Access-Control-Allow-Headers",
-      "X-Requested-With, Content-Type, Authorization, UserID, UserName"
+      "X-Requested-With, Content-Type, Authorization, UserID, UserName, x-api-key",
     );
     res.setHeader("Access-Control-Allow-Credentials", true);
 

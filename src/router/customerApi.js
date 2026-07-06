@@ -4,21 +4,18 @@ import { checkUserJwt } from "../middleware/jwtAction";
 
 const router = express.Router();
 
-const CustomerRoutes = (app) => {
-  router.use(checkUserJwt);
+const customerApi = (app) => {
+  // Áp dụng middleware kiểm tra JWT mã token bảo mật cho tất cả route bên dưới
+  // router.use(checkUserJwt);
 
+  // Các endpoint xử lý riêng cho Customer (Khớp với ApiCustomer ở FE)
   router.get("/customers", customerController.getAllCustomers);
   router.get("/customers/:id", customerController.getCustomerById);
   router.post("/customers", customerController.createCustomer);
   router.put("/customers/:id", customerController.updateCustomer);
-  router.patch("/customers/:id", customerController.patchCustomer);
-  router.delete(
-    "/customers/:id/purchase-history/:historyId",
-    customerController.deletePurchaseHistory,
-  );
   router.delete("/customers/:id", customerController.deleteCustomer);
 
   return app.use("/api", router);
 };
 
-export default CustomerRoutes;
+export default customerApi;

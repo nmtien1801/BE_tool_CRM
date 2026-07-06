@@ -1,42 +1,32 @@
-const { Customer, PurchaseHistory, sequelize } = require("../models");
+import db from "../models"; // Đảm bảo đường dẫn import tới thư mục chứa models của bạn chính xác
 
-const normalizeDate = (date) => {
-  if (!date) return null;
-  const value = String(date).trim();
-  const dmyMatch = value.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
-  if (dmyMatch) {
-    const [, d, m, y] = dmyMatch;
-    return `${y}-${m.padStart(2, "0")}-${d.padStart(2, "0")}`;
+const { Customer, PurchaseHistory, sequelize } = db;
+
+// READ Single Customer (Hàm bổ trợ nội bộ)
+export const getCustomerById = async (id) => {
+  try {
+    const customer = await Customer.findByPk(id, {
+      include: [{ model: PurchaseHistory, as: "purchaseHistories" }],
+    });
+    return customer;
+  } catch (error) {
+    throw error;
   }
-  return value;
-};
-
-// READ Single Customer (Hàm bổ trợ nội bộ và export)
-const getCustomerById = async (id) => {
-  const customer = await Customer.findByPk(id, {
-    include: [{ model: PurchaseHistory, as: "purchaseHistories" }],
-  });
-  return customer;
 };
 
 // CREATE Customer kèm Lịch sử mua hàng ban đầu
-const createCustomer = async (data) => {
+export const createCustomer = async (data) => {
   const transaction = await sequelize.transaction();
   try {
     const { purchaseHistories, ...customerData } = data;
-
-    if (customerData.birthday) {
-      customerData.birthday = normalizeDate(customerData.birthday);
-    }
 
     const customer = await Customer.create(customerData, { transaction });
 
     if (purchaseHistories && purchaseHistories.length > 0) {
       const histories = purchaseHistories.map((history, index) => ({
         ...history,
-        id: `${customer.id}-${index}-${Date.now()}`,
+        id: `PH-${customer.id}-${index}-${Date.now()}`,
         customerId: customer.id,
-        date: normalizeDate(history.date),
       }));
 
       await PurchaseHistory.bulkCreate(histories, { transaction });
@@ -62,11 +52,11 @@ const createCustomer = async (data) => {
 };
 
 // READ All Customers (with Pagination & Filter)
-const getAllCustomers = async (filters = {}, limit = 10, offset = 0) => {
+export const getAllCustomers = async (filters = {}, limit = 10, offset = 0) => {
   try {
     const { count, rows } = await Customer.findAndCountAll({
       where: filters,
-      include: [{ model: PurchaseHistory, as: "purchaseHistories" }], // Sửa thành 'purchaseHistories'
+      include: [{ model: PurchaseHistory, as: "purchaseHistories" }],
       limit,
       offset,
       order: [["createdAt", "DESC"]],
@@ -82,7 +72,7 @@ const getAllCustomers = async (filters = {}, limit = 10, offset = 0) => {
 };
 
 // UPDATE Customer & Lịch sử đơn hàng kèm theo
-const updateCustomer = async (id, data) => {
+export const updateCustomer = async (id, data) => {
   const transaction = await sequelize.transaction();
   try {
     const customer = await Customer.findByPk(id);
@@ -94,26 +84,19 @@ const updateCustomer = async (id, data) => {
       };
     }
 
-    // Sửa bóc tách dữ liệu theo biến 'purchaseHistories'
     const { purchaseHistories, ...customerData } = data;
-    if (customerData.birthday) {
-      customerData.birthday = normalizeDate(customerData.birthday);
-    }
     await customer.update(customerData, { transaction });
 
     if (purchaseHistories) {
-      // 1. Xóa các lịch sử cũ của Customer này
       await PurchaseHistory.destroy({ where: { customerId: id }, transaction });
 
-      // 2. Chuẩn hóa và lọc sạch dữ liệu trước khi nạp vào DB
       const histories = purchaseHistories.map((history, index) => {
         const { id: oldId, ...cleanHistoryData } = history;
 
         return {
           ...cleanHistoryData,
-          id: `EX-${id}-${index}-${Date.now()}`,
+          id: `PH-${id}-${index}-${Date.now()}`,
           customerId: id,
-          date: normalizeDate(cleanHistoryData.date),
           products: cleanHistoryData.products || "",
           invoiceLink: cleanHistoryData.invoiceLink || "",
           issue: cleanHistoryData.issue || "",
@@ -122,7 +105,6 @@ const updateCustomer = async (id, data) => {
         };
       });
 
-      // 3. Gọi Model PurchaseHistory để thực hiện lưu hàng loạt
       await PurchaseHistory.bulkCreate(histories, { transaction });
 
       await customer.update(
@@ -146,7 +128,7 @@ const updateCustomer = async (id, data) => {
 };
 
 // DELETE Purchase History
-const deletePurchaseHistory = async (customerId, historyId) => {
+export const deletePurchaseHistory = async (customerId, historyId) => {
   try {
     const deletedCount = await PurchaseHistory.destroy({
       where: { customerId, id: historyId },
@@ -177,7 +159,7 @@ const deletePurchaseHistory = async (customerId, historyId) => {
 };
 
 // DELETE Customer
-const deleteCustomer = async (id) => {
+export const deleteCustomer = async (id) => {
   try {
     const customer = await Customer.findByPk(id);
     if (!customer) {
@@ -199,7 +181,8 @@ const deleteCustomer = async (id) => {
   }
 };
 
-module.exports = {
+// Đóng gói tất cả object mặc định để hỗ trợ cú pháp: import CustomerService from "..."
+export default {
   createCustomer,
   getAllCustomers,
   getCustomerById,
