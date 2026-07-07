@@ -10,10 +10,10 @@ const getStaffFullName = async (staffIdentifier) => {
         // Tìm kiếm linh hoạt, chấp nhận FE truyền lên id hoặc username của nhân viên
         [db.Sequelize.Op.or]: [
           { id: isNaN(staffIdentifier) ? -1 : Number(staffIdentifier) },
-          { username: staffIdentifier }
-        ]
+          { username: staffIdentifier },
+        ],
       },
-      attributes: ["fullName"]
+      attributes: ["fullName"],
     });
     return staff ? staff.fullName : staffIdentifier; // Nếu tìm thấy thì trả về tên thật, không thì giữ nguyên chuỗi gốc
   } catch (error) {
@@ -59,7 +59,8 @@ const getPurchaseHistoryByCustomerId = async (req, res) => {
 // 2. POST: Tạo mới lịch sử mua hàng gắn với mã khách hàng truyền trong Body
 const createPurchaseHistory = async (req, res) => {
   try {
-    const { id, customerId, date, consultant, careStaff, ...historyData } = req.body;
+    const { id, customerId, date, consultant, careStaff, ...historyData } =
+      req.body;
 
     if (!customerId) {
       return res
@@ -85,8 +86,14 @@ const createPurchaseHistory = async (req, res) => {
       customerId,
       date: validDate,
       consultant: consultantName, // Lưu trực tiếp Họ và tên chữ
-      careStaff: careStaffName,     // Lưu trực tiếp Họ và tên chữ
+      careStaff: careStaffName, // Lưu trực tiếp Họ và tên chữ
     });
+
+    // Cập nhật lại tổng số lần mua hàng của khách hàng sau khi thêm đơn mới
+    const purchaseCount = await db.PurchaseHistory.count({
+      where: { customerId },
+    });
+    await db.Customer.update({ purchaseCount }, { where: { id: customerId } });
 
     return res
       .status(200)
@@ -118,6 +125,17 @@ const updatePurchaseHistory = async (req, res) => {
       where: { id: historyId },
     });
 
+    const history = await db.PurchaseHistory.findByPk(historyId);
+    if (history) {
+      const purchaseCount = await db.PurchaseHistory.count({
+        where: { customerId: history.customerId },
+      });
+      await db.Customer.update(
+        { purchaseCount },
+        { where: { id: history.customerId } },
+      );
+    }
+
     return res.status(200).json({
       EM: "Cập nhật chi tiết đơn mua hàng thành công!",
       EC: 0,
@@ -138,9 +156,24 @@ const deletePurchaseHistory = async (req, res) => {
   try {
     const { historyId } = req.params;
 
+    const history = await db.PurchaseHistory.findByPk(historyId);
+    if (!history) {
+      return res
+        .status(404)
+        .json({ EM: "Không tìm thấy đơn hàng cần xóa", EC: 1, DT: null });
+    }
+
     await db.PurchaseHistory.destroy({
       where: { id: historyId },
     });
+
+    const purchaseCount = await db.PurchaseHistory.count({
+      where: { customerId: history.customerId },
+    });
+    await db.Customer.update(
+      { purchaseCount },
+      { where: { id: history.customerId } },
+    );
 
     return res.status(200).json({
       EM: "Xóa bản ghi đơn mua hàng thành công!",
