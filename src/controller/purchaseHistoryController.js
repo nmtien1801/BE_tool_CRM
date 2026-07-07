@@ -59,8 +59,16 @@ const getPurchaseHistoryByCustomerId = async (req, res) => {
 // 2. POST: Tạo mới lịch sử mua hàng gắn với mã khách hàng truyền trong Body
 const createPurchaseHistory = async (req, res) => {
   try {
-    const { id, customerId, date, consultant, careStaff, ...historyData } =
-      req.body;
+    const {
+      id,
+      customerId,
+      date,
+      consultant,
+      careStaff,
+      behaviorMetric,
+      isCared,
+      ...historyData
+    } = req.body;
 
     if (!customerId) {
       return res
@@ -87,6 +95,8 @@ const createPurchaseHistory = async (req, res) => {
       date: validDate,
       consultant: consultantName, // Lưu trực tiếp Họ và tên chữ
       careStaff: careStaffName, // Lưu trực tiếp Họ và tên chữ
+      behaviorMetric: behaviorMetric ?? null,
+      isCared: Boolean(isCared),
     });
 
     // Cập nhật lại tổng số lần mua hàng của khách hàng sau khi thêm đơn mới
@@ -108,7 +118,8 @@ const createPurchaseHistory = async (req, res) => {
 const updatePurchaseHistory = async (req, res) => {
   try {
     const { historyId } = req.params;
-    const { consultant, careStaff, ...updateData } = req.body;
+    const { consultant, careStaff, behaviorMetric, isCared, ...updateData } =
+      req.body;
 
     // Chuẩn bị object chứa các trường cần update công khai
     const payloadUpdate = { ...updateData };
@@ -119,6 +130,12 @@ const updatePurchaseHistory = async (req, res) => {
     }
     if (careStaff !== undefined) {
       payloadUpdate.careStaff = await getStaffFullName(careStaff);
+    }
+    if (behaviorMetric !== undefined) {
+      payloadUpdate.behaviorMetric = behaviorMetric;
+    }
+    if (isCared !== undefined) {
+      payloadUpdate.isCared = Boolean(isCared);
     }
 
     await db.PurchaseHistory.update(payloadUpdate, {

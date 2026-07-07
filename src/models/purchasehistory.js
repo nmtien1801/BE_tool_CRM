@@ -21,6 +21,8 @@ module.exports = (sequelize) => {
       consultant: DataTypes.STRING,
       careStaff: DataTypes.STRING,
       issue: DataTypes.TEXT,
+      behaviorMetric: DataTypes.TEXT,
+      isCared: { type: DataTypes.BOOLEAN, defaultValue: false },
     },
     {
       sequelize,

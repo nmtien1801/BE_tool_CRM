@@ -22,6 +22,8 @@ module.exports = {
       consultant: { type: Sequelize.STRING },
       careStaff: { type: Sequelize.STRING },
       issue: { type: Sequelize.TEXT },
+      behaviorMetric: { type: Sequelize.TEXT },
+      isCared: { type: Sequelize.BOOLEAN, defaultValue: false },
       createdAt: { allowNull: false, type: Sequelize.DATE },
       updatedAt: { allowNull: false, type: Sequelize.DATE }
     });
