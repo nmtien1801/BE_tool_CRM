@@ -52,6 +52,20 @@ const createPurchaseHistory = async (customerId, data) => {
       date: normalizeDate(data.date),
       products: data.products || "",
       invoiceLink: data.invoiceLink || "",
+      category: data.category || "",
+      itemType: data.itemType || "",
+      quote: data.quote || "",
+      price:
+        data.price !== undefined && data.price !== null
+          ? Number(data.price) || 0
+          : 0,
+      rentalDays:
+        data.rentalDays !== undefined && data.rentalDays !== null
+          ? Number(data.rentalDays) || 0
+          : 0,
+      paymentMethod: data.paymentMethod || "",
+      customerSource: data.customerSource || "",
+      seller: data.seller || "",
       issue: data.issue || "",
       consultant: data.consultant || "",
       careStaff: data.careStaff || "",
@@ -102,6 +116,20 @@ const updatePurchaseHistory = async (historyId, data) => {
       date: data.date ? normalizeDate(data.date) : history.date,
       products: data.products ?? history.products,
       invoiceLink: data.invoiceLink ?? history.invoiceLink,
+      category: data.category ?? history.category,
+      itemType: data.itemType ?? history.itemType,
+      quote: data.quote ?? history.quote,
+      price:
+        data.price !== undefined && data.price !== null
+          ? Number(data.price) || 0
+          : history.price,
+      rentalDays:
+        data.rentalDays !== undefined && data.rentalDays !== null
+          ? Number(data.rentalDays) || 0
+          : history.rentalDays,
+      paymentMethod: data.paymentMethod ?? history.paymentMethod,
+      customerSource: data.customerSource ?? history.customerSource,
+      seller: data.seller ?? history.seller,
       issue: data.issue ?? history.issue,
       consultant: data.consultant ?? history.consultant,
       careStaff: data.careStaff ?? history.careStaff,
