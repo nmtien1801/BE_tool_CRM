@@ -89,6 +89,7 @@ module.exports = {
           rentalDays: 0,
           paymentMethod: "Tiền mặt",
           customerSource: "Email Marketing",
+          referralCustomerId: null,
           seller: "TranThiB",
           issue: "Cần tìm tool tối ưu quy trình render video tự động",
 

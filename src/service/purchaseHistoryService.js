@@ -65,6 +65,10 @@ const createPurchaseHistory = async (customerId, data) => {
           : 0,
       paymentMethod: data.paymentMethod || "",
       customerSource: data.customerSource || "",
+      referralCustomerId:
+        data.referralCustomerId !== undefined && data.referralCustomerId !== ""
+          ? Number(data.referralCustomerId) || null
+          : null,
       seller: data.seller || "",
       issue: data.issue || "",
       consultant: data.consultant || "",
@@ -129,6 +133,12 @@ const updatePurchaseHistory = async (historyId, data) => {
           : history.rentalDays,
       paymentMethod: data.paymentMethod ?? history.paymentMethod,
       customerSource: data.customerSource ?? history.customerSource,
+      referralCustomerId:
+        data.referralCustomerId === undefined
+          ? history.referralCustomerId
+          : data.referralCustomerId === "" || data.referralCustomerId === null
+            ? null
+            : Number(data.referralCustomerId) || null,
       seller: data.seller ?? history.seller,
       issue: data.issue ?? history.issue,
       consultant: data.consultant ?? history.consultant,

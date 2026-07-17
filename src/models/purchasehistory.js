@@ -27,6 +27,7 @@ module.exports = (sequelize) => {
       rentalDays: { type: DataTypes.INTEGER, defaultValue: 0 },
       paymentMethod: DataTypes.STRING,
       customerSource: DataTypes.STRING,
+      referralCustomerId: DataTypes.INTEGER,
       seller: DataTypes.STRING,
       issue: DataTypes.TEXT,
       behaviorMetric: DataTypes.TEXT,

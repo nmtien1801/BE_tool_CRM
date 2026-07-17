@@ -28,6 +28,7 @@ module.exports = {
       rentalDays: { type: Sequelize.INTEGER, defaultValue: 0 },
       paymentMethod: { type: Sequelize.STRING },
       customerSource: { type: Sequelize.STRING },
+      referralCustomerId: { type: Sequelize.INTEGER, allowNull: true },
       seller: { type: Sequelize.STRING },
       issue: { type: Sequelize.TEXT },
       behaviorMetric: { type: Sequelize.TEXT },
