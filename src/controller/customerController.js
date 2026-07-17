@@ -5,23 +5,53 @@ const getAllCustomers = async (req, res) => {
     // Nhận diện các query params từ FE gửi sang để thực hiện phân trang server-side
     const page = parseInt(req.query.page, 10) || 1;
     const pageSize = parseInt(req.query.pageSize, 10) || 5;
-    const search = req.query.search || "";
-    const label = req.query.label || "";
-    const ecosystem = req.query.ecosystem || "";
+    const search = (req.query.search || "").trim();
+    const searchById = (
+      req.query.id ||
+      req.query.customerId ||
+      req.query.searchId ||
+      ""
+    )
+      .toString()
+      .trim();
+    const label = (req.query.label || "").trim();
+    const ecosystem = (req.query.ecosystem || "").trim();
 
     const offset = (page - 1) * pageSize;
 
     // Xây dựng điều kiện lọc dữ liệu
-    let whereClause = {};
-    if (label) whereClause.label = label;
-    if (ecosystem) whereClause.ecosystem = ecosystem;
-    if (search) {
-      whereClause[db.Sequelize.Op.or] = [
-        { fullName: { [db.Sequelize.Op.like]: `%${search}%` } },
-        { phone: { [db.Sequelize.Op.like]: `%${search}%` } },
-        { email: { [db.Sequelize.Op.like]: `%${search}%` } },
-      ];
+    const whereConditions = [];
+
+    if (label) {
+      whereConditions.push({ label });
     }
+    if (ecosystem) {
+      whereConditions.push({ ecosystem });
+    }
+    if (searchById) {
+      const numericId = Number(searchById);
+      whereConditions.push(
+        Number.isNaN(numericId)
+          ? { id: { [db.Sequelize.Op.like]: `%${searchById}%` } }
+          : { id: numericId },
+      );
+    }
+    if (search) {
+      whereConditions.push({
+        [db.Sequelize.Op.or]: [
+          { fullName: { [db.Sequelize.Op.like]: `%${search}%` } },
+          { phone: { [db.Sequelize.Op.like]: `%${search}%` } },
+          { email: { [db.Sequelize.Op.like]: `%${search}%` } },
+        ],
+      });
+    }
+
+    const whereClause =
+      whereConditions.length > 0
+        ? whereConditions.length === 1
+          ? whereConditions[0]
+          : { [db.Sequelize.Op.and]: whereConditions }
+        : {};
 
     // Thực hiện truy vấn đồng thời đếm tổng số lượng bản ghi thỏa điều kiện
     const { count, rows } = await db.Customer.findAndCountAll({
