@@ -62,9 +62,7 @@ const handleRegister = async (rawData) => {
       email: rawData.email,
       password: hashPassword(rawData.password),
       phone: rawData.phone || "",
-      address: rawData.address || "",
       role: rawData.role || "Operator",
-      image: rawData.image || "",
     });
 
     return {
@@ -159,7 +157,6 @@ const updateProfile = async (userID, rawData) => {
       fullName: rawData.fullName ?? user.fullName, // Cập nhật cả fullName
       phone: rawData.phone ?? user.phone,
       email: rawData.email ?? user.email,
-      address: rawData.address ?? user.address,
     });
 
     const updatedUser = user.toJSON();
@@ -236,13 +233,11 @@ const createUser = async (rawData) => {
     const password = rawData.password || "123456";
     const newUser = await db.User.create({
       userName: rawData.userName,
-      fullName: rawData.fullName || rawData.userName, // Thêm fullName
+      fullName: rawData.fullName, // Thêm fullName
       email: rawData.email || "",
       password: hashPassword(password),
       phone: rawData.phone || "",
-      address: rawData.address || "",
       role: rawData.role || "Operator",
-      image: rawData.image || "",
     });
 
     return {
@@ -291,9 +286,7 @@ const updateUser = async (rawData) => {
       fullName: rawData.fullName ?? user.fullName, // Cập nhật cả fullName tại đây
       phone: rawData.phone ?? user.phone,
       email: rawData.email ?? user.email,
-      address: rawData.address ?? user.address,
       role: rawData.role ?? user.role,
-      image: rawData.image ?? user.image,
     };
 
     if (rawData.password) {
@@ -343,9 +336,7 @@ const resetPassword = async (rawData) => {
       };
     }
 
-    // 2. Mã hóa mật khẩu mặc định "123456"
-    const defaultPassword = "123456";
-    const hashedNewPassword = hashPassword(defaultPassword);
+    const hashedNewPassword = hashPassword(rawData.password);
 
     // 3. Cập nhật trực tiếp vào DB không qua kiểm tra mật khẩu cũ
     await user.update({ password: hashedNewPassword });
