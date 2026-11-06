@@ -14,6 +14,7 @@ const customerApi = (app) => {
     customerController.getCustomerTotalSpent,
   );
   router.get("/customers", customerController.getAllCustomers);
+  router.get("/customer/search", customerController.searchCustomerByPhoneOrEmail);
   router.get("/customers/:id", customerController.getCustomerById);
   router.post("/customers", customerController.createCustomer);
   router.put("/customers/:id", customerController.updateCustomer);

@@ -5,19 +5,32 @@ const getAllCustomers = async (req, res) => {
     const viewerId = req.userId || req.user?.id || req.headers["userid"];
     const viewer = viewerId
       ? await db.User.findByPk(viewerId, {
-          attributes: ["role", "fullName", "userName", "cmicMedia", "cmicStudio"],
+          attributes: [
+            "role",
+            "fullName",
+            "userName",
+            "cmicMedia",
+            "cmicStudio",
+          ],
         })
       : null;
     if (!viewer) {
-      return res.status(401).json({ EM: "Không xác định được người dùng.", EC: -1, DT: null });
+      return res
+        .status(401)
+        .json({ EM: "Không xác định được người dùng.", EC: -1, DT: null });
     }
 
     // DEBUG - remove after permission testing
     console.log("Customer viewer debug:", {
-      viewerId, role: viewer.role, cmicMedia: viewer.cmicMedia, cmicStudio: viewer.cmicStudio
+      viewerId,
+      role: viewer.role,
+      cmicMedia: viewer.cmicMedia,
+      cmicStudio: viewer.cmicStudio,
     });
 
-    const normalizedRole = String(viewer.role || "").trim().toLowerCase();
+    const normalizedRole = String(viewer.role || "")
+      .trim()
+      .toLowerCase();
     const isAdmin = normalizedRole === "admin";
     const isManager = normalizedRole === "manager";
     const allowedEcosystems = [];
@@ -30,21 +43,31 @@ const getAllCustomers = async (req, res) => {
     const staffNames = [viewer.fullName, viewer.userName]
       .filter((name) => String(name || "").trim())
       .map((name) => String(name).trim());
-    const normalizedStaffNames = new Set(staffNames.map((name) => name.toLowerCase()));
+    const normalizedStaffNames = new Set(
+      staffNames.map((name) => name.toLowerCase()),
+    );
 
-    const assignedHistories = !isAdmin && normalizedStaffNames.size > 0
-      ? await db.PurchaseHistory.findAll({
-          attributes: ["customerId", "careStaff", "seller", "consultant"],
-        })
-      : [];
+    const assignedHistories =
+      !isAdmin && normalizedStaffNames.size > 0
+        ? await db.PurchaseHistory.findAll({
+            attributes: ["customerId", "careStaff", "seller", "consultant"],
+          })
+        : [];
     const assignedIds = [
       ...new Set(
         assignedHistories
-          .filter((history) => [history.careStaff, history.seller, history.consultant].some(
-            (name) => normalizedStaffNames.has(String(name || "").trim().toLowerCase())
-          ))
+          .filter((history) =>
+            [history.careStaff, history.seller, history.consultant].some(
+              (name) =>
+                normalizedStaffNames.has(
+                  String(name || "")
+                    .trim()
+                    .toLowerCase(),
+                ),
+            ),
+          )
           .map((history) => history.customerId)
-          .filter(Boolean)
+          .filter(Boolean),
       ),
     ];
 
@@ -66,7 +89,11 @@ const getAllCustomers = async (req, res) => {
       });
     }
 
-    if (!isAdmin && allowedEcosystems.length === 0 && assignedIds.length === 0) {
+    if (
+      !isAdmin &&
+      allowedEcosystems.length === 0 &&
+      assignedIds.length === 0
+    ) {
       return res.status(200).json({
         EM: "Nhân viên chưa được phân công hệ sinh thái hoặc khách hàng.",
         EC: 0,
@@ -89,7 +116,8 @@ const getAllCustomers = async (req, res) => {
     const label = (req.query.label || "").trim();
     const ecosystem = (req.query.ecosystem || "").trim();
     const ecosystemsParam = (req.query.ecosystems || "").trim();
-    const onlyAssigned = normalizedRole === "staff" || req.query.onlyAssigned === "true";
+    const onlyAssigned =
+      normalizedRole === "staff" || req.query.onlyAssigned === "true";
 
     const offset = (page - 1) * pageSize;
 
@@ -101,10 +129,16 @@ const getAllCustomers = async (req, res) => {
     }
     let requestedEcosystems = allowedEcosystems;
     if (ecosystem) {
-      requestedEcosystems = [ecosystem.toUpperCase()].filter((item) => allowedEcosystems.includes(item));
+      requestedEcosystems = [ecosystem.toUpperCase()].filter((item) =>
+        allowedEcosystems.includes(item),
+      );
     } else if (ecosystemsParam) {
-      const clientEcosystems = ecosystemsParam.split(",").map((item) => item.trim().toUpperCase());
-      requestedEcosystems = allowedEcosystems.filter((item) => clientEcosystems.includes(item));
+      const clientEcosystems = ecosystemsParam
+        .split(",")
+        .map((item) => item.trim().toUpperCase());
+      requestedEcosystems = allowedEcosystems.filter((item) =>
+        clientEcosystems.includes(item),
+      );
     }
 
     if (!isAdmin && onlyAssigned) {
@@ -118,18 +152,23 @@ const getAllCustomers = async (req, res) => {
         });
       }
     } else if (!isAdmin) {
-      const ecosystemCondition = requestedEcosystems.length > 0
-        ? [{ ecosystem: { [db.Sequelize.Op.in]: requestedEcosystems } }]
-        : [];
-      const assignedCondition = isManager ? [] : [
-        { id: { [db.Sequelize.Op.in]: assignedIds.length > 0 ? assignedIds : [0] } },
-      ];
+      const ecosystemCondition =
+        requestedEcosystems.length > 0
+          ? [{ ecosystem: { [db.Sequelize.Op.in]: requestedEcosystems } }]
+          : [];
+      const assignedCondition = isManager
+        ? []
+        : [
+            {
+              id: {
+                [db.Sequelize.Op.in]:
+                  assignedIds.length > 0 ? assignedIds : [0],
+              },
+            },
+          ];
       if (ecosystemCondition.length > 0 || assignedCondition.length > 0) {
         whereConditions.push({
-          [db.Sequelize.Op.or]: [
-            ...ecosystemCondition,
-            ...assignedCondition,
-          ],
+          [db.Sequelize.Op.or]: [...ecosystemCondition, ...assignedCondition],
         });
       } else {
         whereConditions.push({ ecosystem: "__NO_ACCESS__" });
@@ -195,11 +234,19 @@ const getCustomerById = async (req, res) => {
     const viewerId = req.userId || req.user?.id || req.headers["userid"];
     const viewer = viewerId
       ? await db.User.findByPk(viewerId, {
-          attributes: ["role", "fullName", "userName", "cmicMedia", "cmicStudio"],
+          attributes: [
+            "role",
+            "fullName",
+            "userName",
+            "cmicMedia",
+            "cmicStudio",
+          ],
         })
       : null;
     if (!viewer) {
-      return res.status(401).json({ EM: "Không xác định được người dùng.", EC: -1, DT: null });
+      return res
+        .status(401)
+        .json({ EM: "Không xác định được người dùng.", EC: -1, DT: null });
     }
 
     const customer = await db.Customer.findByPk(req.params.id);
@@ -211,7 +258,9 @@ const getCustomerById = async (req, res) => {
       });
     }
 
-    const normalizedRole = String(viewer.role || "").trim().toLowerCase();
+    const normalizedRole = String(viewer.role || "")
+      .trim()
+      .toLowerCase();
     const isAdmin = normalizedRole === "admin";
     if (!isAdmin) {
       const ecosystem = String(customer.ecosystem || "").toUpperCase();
@@ -228,13 +277,21 @@ const getCustomerById = async (req, res) => {
       });
       const assignedHistory = assignedHistories.find((history) =>
         [history.careStaff, history.seller, history.consultant].some((name) =>
-          staffNames.includes(String(name || "").trim().toLowerCase())
-        )
+          staffNames.includes(
+            String(name || "")
+              .trim()
+              .toLowerCase(),
+          ),
+        ),
       );
 
       const isStaff = normalizedRole === "staff";
       const isManager = normalizedRole === "manager";
-      const canView = isManager ? allowed : isStaff ? Boolean(assignedHistory) : false;
+      const canView = isManager
+        ? allowed
+        : isStaff
+          ? Boolean(assignedHistory)
+          : false;
       if (!canView) {
         return res.status(403).json({
           EM: "Bạn không có quyền xem khách hàng thuộc hệ sinh thái này.",
@@ -327,6 +384,75 @@ const deleteCustomer = async (req, res) => {
   }
 };
 
+const searchCustomerByPhoneOrEmail = async (req, res) => {
+  try {
+    const phone = (req.query.phone || "").trim();
+    const email = (req.query.email || "").trim();
+    const ecosystem = (req.query.ecosystem || "").trim();
+
+    // 1. Kiểm tra tham số đầu vào
+    if (!phone && !email) {
+      return res.status(400).json({
+        EM: "Vui lòng cung cấp số điện thoại hoặc email để tìm kiếm!",
+        EC: 1,
+        DT: [],
+      });
+    }
+
+    if (!ecosystem) {
+      return res.status(400).json({
+        EM: "Vui lòng cung cấp hệ sinh thái (ecosystem)!",
+        EC: 1,
+        DT: [],
+      });
+    }
+
+    // 2. Xây dựng điều kiện: (phone = X OR email = Y)
+    const orConditions = [];
+
+    if (phone && phone !== "0") {
+      orConditions.push({ phone: phone });
+    }
+
+    if (email) {
+      orConditions.push({ email: email.toLowerCase() });
+    }
+
+    if (orConditions.length === 0) {
+      return res.status(200).json({
+        EM: "Không tìm thấy khách hàng phù hợp.",
+        EC: 0,
+        DT: [],
+      });
+    }
+
+    // 3. Kết hợp điều kiện: [ (phone khớp OR email khớp) AND ecosystem khớp ]
+    const customers = await db.Customer.findAll({
+      where: {
+        [db.Sequelize.Op.and]: [
+          { [db.Sequelize.Op.or]: orConditions },
+          { ecosystem: ecosystem.toUpperCase() }, // hoặc giữ nguyên ecosystem tùy DB lưu hoa/thường
+        ],
+      },
+      order: [["id", "DESC"]],
+      limit: 10,
+    });
+
+    return res.status(200).json({
+      EM: "Tìm kiếm khách hàng thành công!",
+      EC: 0,
+      DT: customers,
+    });
+  } catch (error) {
+    console.error("Lỗi searchCustomer BE:", error);
+    return res.status(500).json({
+      EM: "Lỗi hệ thống khi tìm kiếm khách hàng.",
+      EC: -1,
+      DT: null,
+    });
+  }
+};
+
 export default {
   getAllCustomers,
   getCustomerById,
@@ -334,4 +460,5 @@ export default {
   updateCustomer,
   deleteCustomer,
   getCustomerTotalSpent,
+  searchCustomerByPhoneOrEmail,
 };
