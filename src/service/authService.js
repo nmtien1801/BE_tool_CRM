@@ -119,7 +119,7 @@ const handleLogin = async (rawData) => {
     };
   } catch (error) {
     console.log("Error in handleLogin:", error);
-    return { EM: "Error from server", EC: -1, DT: "" };
+    return { EM: "Error from server login", EC: -1, DT: "" };
   }
 };
 

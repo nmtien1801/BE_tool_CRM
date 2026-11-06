@@ -23,7 +23,7 @@ const handleRegister = async (req, res) => {
   } catch (error) {
     console.error("Error in handleRegister:", error);
     return res.status(500).json({
-      EM: "Error from server",
+      EM: "Error from server register",
       EC: -1,
       DT: "",
     });
@@ -37,7 +37,7 @@ const changePassword = async (req, res) => {
     return res.status(200).json(data);
   } catch (error) {
     console.error(">>> Error changePassword:", error);
-    return res.status(500).json({ EM: "Error from server", EC: -1, DT: "" });
+    return res.status(500).json({ EM: "Error from server change password", EC: -1, DT: "" });
   }
 };
 
@@ -58,7 +58,7 @@ const getListUser = async (req, res) => {
     return res.status(200).json(data);
   } catch (error) {
     console.error(">>> Error getListUser:", error);
-    return res.status(500).json({ EM: "Error from server", EC: -1, DT: "" });
+    return res.status(500).json({ EM: "Error from server get list user", EC: -1, DT: "" });
   }
 };
 
@@ -68,7 +68,7 @@ const createUser = async (req, res) => {
     return res.status(200).json(data);
   } catch (error) {
     console.error(">>> Error createUser:", error);
-    return res.status(500).json({ EM: "Error from server", EC: -1, DT: "" });
+    return res.status(500).json({ EM: "Error from server create user", EC: -1, DT: "" });
   }
 };
 
