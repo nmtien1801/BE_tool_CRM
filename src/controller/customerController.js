@@ -2,6 +2,78 @@ import db from "../models/index"; // Giả định dùng Sequelize ORM
 
 const getAllCustomers = async (req, res) => {
   try {
+    const viewerId = req.userId || req.user?.id || req.headers["userid"];
+    const viewer = viewerId
+      ? await db.User.findByPk(viewerId, {
+          attributes: ["role", "fullName", "userName", "cmicMedia", "cmicStudio"],
+        })
+      : null;
+    if (!viewer) {
+      return res.status(401).json({ EM: "Không xác định được người dùng.", EC: -1, DT: null });
+    }
+
+    // DEBUG - remove after permission testing
+    console.log("Customer viewer debug:", {
+      viewerId, role: viewer.role, cmicMedia: viewer.cmicMedia, cmicStudio: viewer.cmicStudio
+    });
+
+    const normalizedRole = String(viewer.role || "").trim().toLowerCase();
+    const isAdmin = normalizedRole === "admin";
+    const isManager = normalizedRole === "manager";
+    const allowedEcosystems = [];
+
+    if ((isManager || normalizedRole === "staff") && viewer) {
+      if (viewer.cmicMedia) allowedEcosystems.push("CMIC_MEDIA");
+      if (viewer.cmicStudio) allowedEcosystems.push("CMIC_STUDIO");
+    }
+
+    const staffNames = [viewer.fullName, viewer.userName]
+      .filter((name) => String(name || "").trim())
+      .map((name) => String(name).trim());
+    const normalizedStaffNames = new Set(staffNames.map((name) => name.toLowerCase()));
+
+    const assignedHistories = !isAdmin && normalizedStaffNames.size > 0
+      ? await db.PurchaseHistory.findAll({
+          attributes: ["customerId", "careStaff", "seller", "consultant"],
+        })
+      : [];
+    const assignedIds = [
+      ...new Set(
+        assignedHistories
+          .filter((history) => [history.careStaff, history.seller, history.consultant].some(
+            (name) => normalizedStaffNames.has(String(name || "").trim().toLowerCase())
+          ))
+          .map((history) => history.customerId)
+          .filter(Boolean)
+      ),
+    ];
+
+    console.log("Customer assignedIds debug:", assignedIds.length);
+
+    if (normalizedRole === "staff" && assignedIds.length === 0) {
+      return res.status(200).json({
+        EM: "Nhân viên chưa được phân công khách hàng.",
+        EC: 0,
+        DT: { items: [], total: 0, totalPages: 1 },
+      });
+    }
+
+    if (isManager && allowedEcosystems.length === 0) {
+      return res.status(200).json({
+        EM: "Quản lý chưa được phân công hệ sinh thái.",
+        EC: 0,
+        DT: { items: [], total: 0, totalPages: 1 },
+      });
+    }
+
+    if (!isAdmin && allowedEcosystems.length === 0 && assignedIds.length === 0) {
+      return res.status(200).json({
+        EM: "Nhân viên chưa được phân công hệ sinh thái hoặc khách hàng.",
+        EC: 0,
+        DT: { items: [], total: 0, totalPages: 1 },
+      });
+    }
+
     // Nhận diện các query params từ FE gửi sang để thực hiện phân trang server-side
     const page = parseInt(req.query.page, 10) || 1;
     const pageSize = parseInt(req.query.pageSize, 10) || 5;
@@ -16,6 +88,8 @@ const getAllCustomers = async (req, res) => {
       .trim();
     const label = (req.query.label || "").trim();
     const ecosystem = (req.query.ecosystem || "").trim();
+    const ecosystemsParam = (req.query.ecosystems || "").trim();
+    const onlyAssigned = normalizedRole === "staff" || req.query.onlyAssigned === "true";
 
     const offset = (page - 1) * pageSize;
 
@@ -25,8 +99,41 @@ const getAllCustomers = async (req, res) => {
     if (label) {
       whereConditions.push({ label });
     }
+    let requestedEcosystems = allowedEcosystems;
     if (ecosystem) {
-      whereConditions.push({ ecosystem });
+      requestedEcosystems = [ecosystem.toUpperCase()].filter((item) => allowedEcosystems.includes(item));
+    } else if (ecosystemsParam) {
+      const clientEcosystems = ecosystemsParam.split(",").map((item) => item.trim().toUpperCase());
+      requestedEcosystems = allowedEcosystems.filter((item) => clientEcosystems.includes(item));
+    }
+
+    if (!isAdmin && onlyAssigned) {
+      const validAssignedIds = assignedIds.length > 0 ? assignedIds : [0];
+      whereConditions.push({ id: { [db.Sequelize.Op.in]: validAssignedIds } });
+      if (ecosystem) {
+        whereConditions.push({
+          ecosystem: requestedEcosystems.includes(ecosystem.toUpperCase())
+            ? ecosystem.toUpperCase()
+            : "__NO_ACCESS__",
+        });
+      }
+    } else if (!isAdmin) {
+      const ecosystemCondition = requestedEcosystems.length > 0
+        ? [{ ecosystem: { [db.Sequelize.Op.in]: requestedEcosystems } }]
+        : [];
+      const assignedCondition = isManager ? [] : [
+        { id: { [db.Sequelize.Op.in]: assignedIds.length > 0 ? assignedIds : [0] } },
+      ];
+      if (ecosystemCondition.length > 0 || assignedCondition.length > 0) {
+        whereConditions.push({
+          [db.Sequelize.Op.or]: [
+            ...ecosystemCondition,
+            ...assignedCondition,
+          ],
+        });
+      } else {
+        whereConditions.push({ ecosystem: "__NO_ACCESS__" });
+      }
     }
     if (searchById) {
       const numericId = Number(searchById);
@@ -85,6 +192,16 @@ const getAllCustomers = async (req, res) => {
 
 const getCustomerById = async (req, res) => {
   try {
+    const viewerId = req.userId || req.user?.id || req.headers["userid"];
+    const viewer = viewerId
+      ? await db.User.findByPk(viewerId, {
+          attributes: ["role", "fullName", "userName", "cmicMedia", "cmicStudio"],
+        })
+      : null;
+    if (!viewer) {
+      return res.status(401).json({ EM: "Không xác định được người dùng.", EC: -1, DT: null });
+    }
+
     const customer = await db.Customer.findByPk(req.params.id);
     if (!customer) {
       return res.status(404).json({
@@ -92,6 +209,39 @@ const getCustomerById = async (req, res) => {
         EC: 1,
         DT: null,
       });
+    }
+
+    const normalizedRole = String(viewer.role || "").trim().toLowerCase();
+    const isAdmin = normalizedRole === "admin";
+    if (!isAdmin) {
+      const ecosystem = String(customer.ecosystem || "").toUpperCase();
+      const allowed =
+        (viewer.cmicMedia && ecosystem === "CMIC_MEDIA") ||
+        (viewer.cmicStudio && ecosystem === "CMIC_STUDIO");
+
+      const staffNames = [viewer.fullName, viewer.userName]
+        .filter((name) => String(name || "").trim())
+        .map((name) => String(name).trim().toLowerCase());
+      const assignedHistories = await db.PurchaseHistory.findAll({
+        where: { customerId: customer.id },
+        attributes: ["careStaff", "seller", "consultant"],
+      });
+      const assignedHistory = assignedHistories.find((history) =>
+        [history.careStaff, history.seller, history.consultant].some((name) =>
+          staffNames.includes(String(name || "").trim().toLowerCase())
+        )
+      );
+
+      const isStaff = normalizedRole === "staff";
+      const isManager = normalizedRole === "manager";
+      const canView = isManager ? allowed : isStaff ? Boolean(assignedHistory) : false;
+      if (!canView) {
+        return res.status(403).json({
+          EM: "Bạn không có quyền xem khách hàng thuộc hệ sinh thái này.",
+          EC: -1,
+          DT: null,
+        });
+      }
     }
     return res
       .status(200)

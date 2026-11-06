@@ -35,6 +35,16 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: "Operator",
       },
+      cmicMedia: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
+      cmicStudio: {
+        type: DataTypes.BOOLEAN,
+        allowNull: false,
+        defaultValue: false,
+      },
     },
     {
       sequelize,

@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import authApi from "./router/authApi";
 import customerApi from "./router/customerApi";
 import PurchaseHistoryApi from "./router/purchaseHistoryApi";
+import ecosystemApi from "./router/ecosystemApi";
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(cookieParser());
 authApi(app);
 PurchaseHistoryApi(app);
 customerApi(app);
+ecosystemApi(app);
 
 // ==========================================
 // 4. KHỞI CHẠY SERVER

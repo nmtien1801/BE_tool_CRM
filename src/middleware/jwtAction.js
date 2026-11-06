@@ -1,4 +1,5 @@
 import dotenv from "dotenv";
+import jwt from "jsonwebtoken";
 
 dotenv.config();
 
@@ -42,6 +43,18 @@ const checkUserJwt = async (req, res, next) => {
   const currentSecretKey = process.env.API_SECRET_KEY;
 
   if (clientApiKey && clientApiKey === currentSecretKey) {
+    const authorization = req.headers.authorization;
+    if (authorization?.startsWith("Bearer ")) {
+      try {
+        req.user = jwt.verify(
+          authorization.slice(7),
+          process.env.API_SECRET_KEY,
+        );
+      } catch (error) {
+        req.user = null;
+      }
+    }
+    req.userId = req.user?.id || req.user?.userId || req.user?.sub || null;
     // Nếu key chính xác hoàn toàn, cho phép đi tiếp vào controller
     next();
   } else {
