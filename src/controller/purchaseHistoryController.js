@@ -67,6 +67,7 @@ const createPurchaseHistory = async (req, res) => {
       careStaff,
       behaviorMetric,
       isCared,
+      receivableDebt,
       ...historyData
     } = req.body;
 
@@ -74,6 +75,16 @@ const createPurchaseHistory = async (req, res) => {
       return res
         .status(400)
         .json({ EM: "Thiếu customerId!", EC: -1, DT: null });
+    }
+
+    const normalizedReceivableDebt =
+      receivableDebt === undefined ? 0 : Number(receivableDebt);
+    if (!Number.isFinite(normalizedReceivableDebt) || normalizedReceivableDebt < 0) {
+      return res.status(400).json({
+        EM: "Công nợ phải thu phải là số không âm.",
+        EC: -1,
+        DT: null,
+      });
     }
 
     // 🛡️ TỰ SINH CHUỖI ID DẠNG UUID
@@ -95,6 +106,7 @@ const createPurchaseHistory = async (req, res) => {
       date: validDate,
       consultant: consultantName, // Lưu trực tiếp Họ và tên chữ
       careStaff: careStaffName, // Lưu trực tiếp Họ và tên chữ
+      receivableDebt: normalizedReceivableDebt,
       behaviorMetric: behaviorMetric ?? null,
       isCared: Boolean(isCared),
     });
@@ -118,8 +130,26 @@ const createPurchaseHistory = async (req, res) => {
 const updatePurchaseHistory = async (req, res) => {
   try {
     const { historyId } = req.params;
-    const { consultant, careStaff, behaviorMetric, isCared, ...updateData } =
-      req.body;
+    const {
+      consultant,
+      careStaff,
+      behaviorMetric,
+      isCared,
+      receivableDebt,
+      ...updateData
+    } = req.body;
+
+    if (receivableDebt !== undefined) {
+      const normalizedReceivableDebt = Number(receivableDebt);
+      if (!Number.isFinite(normalizedReceivableDebt) || normalizedReceivableDebt < 0) {
+        return res.status(400).json({
+          EM: "Công nợ phải thu phải là số không âm.",
+          EC: -1,
+          DT: null,
+        });
+      }
+      updateData.receivableDebt = normalizedReceivableDebt;
+    }
 
     // Chuẩn bị object chứa các trường cần update công khai
     const payloadUpdate = { ...updateData };

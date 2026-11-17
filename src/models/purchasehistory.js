@@ -24,6 +24,7 @@ module.exports = (sequelize) => {
       itemType: DataTypes.STRING,
       quote: DataTypes.STRING,
       price: DataTypes.FLOAT,
+      receivableDebt: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
       rentalDays: { type: DataTypes.INTEGER, defaultValue: 0 },
       paymentMethod: DataTypes.STRING,
       customerSource: DataTypes.STRING,

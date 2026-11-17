@@ -116,6 +116,8 @@ const getAllCustomers = async (req, res) => {
     const label = (req.query.label || "").trim();
     const ecosystem = (req.query.ecosystem || "").trim();
     const ecosystemsParam = (req.query.ecosystems || "").trim();
+    const transactionDateFrom = (req.query.transactionDateFrom || "").trim();
+    const transactionDateTo = (req.query.transactionDateTo || "").trim();
     const onlyAssigned =
       normalizedRole === "staff" || req.query.onlyAssigned === "true";
 
@@ -127,6 +129,27 @@ const getAllCustomers = async (req, res) => {
     if (label) {
       whereConditions.push({ label });
     }
+    if (transactionDateFrom || transactionDateTo) {
+      const dateCondition = {};
+      if (transactionDateFrom) {
+        dateCondition[db.Sequelize.Op.gte] = transactionDateFrom;
+      }
+      if (transactionDateTo) {
+        dateCondition[db.Sequelize.Op.lte] = transactionDateTo;
+      }
+      const matchingHistories = await db.PurchaseHistory.findAll({
+        attributes: ["customerId"],
+        where: { date: dateCondition },
+        raw: true,
+      });
+      const matchingCustomerIds = [
+        ...new Set(matchingHistories.map((history) => history.customerId)),
+      ];
+      whereConditions.push({
+        id: { [db.Sequelize.Op.in]: matchingCustomerIds },
+      });
+    }
+
     let requestedEcosystems = allowedEcosystems;
     if (ecosystem) {
       requestedEcosystems = [ecosystem.toUpperCase()].filter((item) =>
@@ -139,6 +162,10 @@ const getAllCustomers = async (req, res) => {
       requestedEcosystems = allowedEcosystems.filter((item) =>
         clientEcosystems.includes(item),
       );
+    }
+
+    if (isAdmin && ecosystem) {
+      whereConditions.push({ ecosystem: ecosystem.toUpperCase() });
     }
 
     if (!isAdmin && onlyAssigned) {
