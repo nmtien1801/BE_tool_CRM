@@ -8,6 +8,7 @@ import authApi from "./router/authApi";
 import customerApi from "./router/customerApi";
 import PurchaseHistoryApi from "./router/purchaseHistoryApi";
 import ecosystemApi from "./router/ecosystemApi";
+import expenseApi from "./router/expenseApi.js";
 
 const app = express();
 
@@ -26,6 +27,7 @@ authApi(app);
 PurchaseHistoryApi(app);
 customerApi(app);
 ecosystemApi(app);
+expenseApi(app);
 
 // ==========================================
 // 4. KHỞI CHẠY SERVER
