@@ -9,6 +9,7 @@ import customerApi from "./router/customerApi";
 import PurchaseHistoryApi from "./router/purchaseHistoryApi";
 import ecosystemApi from "./router/ecosystemApi";
 import expenseApi from "./router/expenseApi.js";
+import dashboardApi from "./router/dashboardApi.js";
 
 const app = express();
 
@@ -28,6 +29,7 @@ PurchaseHistoryApi(app);
 customerApi(app);
 ecosystemApi(app);
 expenseApi(app);
+dashboardApi(app);
 
 // ==========================================
 // 4. KHỞI CHẠY SERVER
