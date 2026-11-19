@@ -30,6 +30,7 @@ module.exports = (sequelize) => {
       customerSource: DataTypes.STRING,
       referralCustomerId: DataTypes.INTEGER,
       seller: DataTypes.STRING,
+      ads: { type: DataTypes.BOOLEAN, allowNull: false, defaultValue: false },
       issue: DataTypes.TEXT,
       behaviorMetric: DataTypes.TEXT,
       isCared: { type: DataTypes.BOOLEAN, defaultValue: false },

@@ -30,6 +30,7 @@ module.exports = {
       customerSource: { type: Sequelize.STRING },
       referralCustomerId: { type: Sequelize.INTEGER, allowNull: true },
       seller: { type: Sequelize.STRING },
+      ads: { type: Sequelize.BOOLEAN, allowNull: false, defaultValue: false },
       issue: { type: Sequelize.TEXT },
       behaviorMetric: { type: Sequelize.TEXT },
       isCared: { type: Sequelize.BOOLEAN, defaultValue: false },

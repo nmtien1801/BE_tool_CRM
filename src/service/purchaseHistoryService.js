@@ -1,6 +1,14 @@
 const db = require("../models");
 const { Customer, PurchaseHistory, sequelize } = db;
 
+const normalizeBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null) return defaultValue;
+  if (typeof value === "string") {
+    return ["true", "1", "yes", "on"].includes(value.toLowerCase());
+  }
+  return Boolean(value);
+};
+
 const normalizeDate = (date) => {
   if (!date) return null;
   const value = String(date).trim();
@@ -70,6 +78,7 @@ const createPurchaseHistory = async (customerId, data) => {
           ? Number(data.referralCustomerId) || null
           : null,
       seller: data.seller || "",
+      ads: normalizeBoolean(data.ads),
       issue: data.issue || "",
       consultant: data.consultant || "",
       careStaff: data.careStaff || "",
@@ -140,6 +149,10 @@ const updatePurchaseHistory = async (historyId, data) => {
             ? null
             : Number(data.referralCustomerId) || null,
       seller: data.seller ?? history.seller,
+      ads:
+        data.ads !== undefined
+          ? normalizeBoolean(data.ads)
+          : history.ads,
       issue: data.issue ?? history.issue,
       consultant: data.consultant ?? history.consultant,
       careStaff: data.careStaff ?? history.careStaff,

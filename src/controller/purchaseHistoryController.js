@@ -1,6 +1,14 @@
 import db from "../models/index";
 import crypto from "crypto";
 
+const normalizeBoolean = (value, defaultValue = false) => {
+  if (value === undefined || value === null) return defaultValue;
+  if (typeof value === "string") {
+    return ["true", "1", "yes", "on"].includes(value.toLowerCase());
+  }
+  return Boolean(value);
+};
+
 // Hàm phụ trợ: Lấy họ tên thật (fullName) từ username hoặc id của nhân sự
 const getStaffFullName = async (staffIdentifier) => {
   if (!staffIdentifier) return "";
@@ -68,6 +76,7 @@ const createPurchaseHistory = async (req, res) => {
       behaviorMetric,
       isCared,
       receivableDebt,
+      ads,
       ...historyData
     } = req.body;
 
@@ -109,6 +118,7 @@ const createPurchaseHistory = async (req, res) => {
       receivableDebt: normalizedReceivableDebt,
       behaviorMetric: behaviorMetric ?? null,
       isCared: Boolean(isCared),
+      ads: normalizeBoolean(ads),
     });
 
     // Cập nhật lại tổng số lần mua hàng của khách hàng sau khi thêm đơn mới
@@ -136,6 +146,7 @@ const updatePurchaseHistory = async (req, res) => {
       behaviorMetric,
       isCared,
       receivableDebt,
+      ads,
       ...updateData
     } = req.body;
 
@@ -166,6 +177,9 @@ const updatePurchaseHistory = async (req, res) => {
     }
     if (isCared !== undefined) {
       payloadUpdate.isCared = Boolean(isCared);
+    }
+    if (ads !== undefined) {
+      payloadUpdate.ads = normalizeBoolean(ads);
     }
 
     await db.PurchaseHistory.update(payloadUpdate, {

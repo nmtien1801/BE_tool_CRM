@@ -20,14 +20,6 @@ const getAllCustomers = async (req, res) => {
         .json({ EM: "Không xác định được người dùng.", EC: -1, DT: null });
     }
 
-    // DEBUG - remove after permission testing
-    console.log("Customer viewer debug:", {
-      viewerId,
-      role: viewer.role,
-      cmicMedia: viewer.cmicMedia,
-      cmicStudio: viewer.cmicStudio,
-    });
-
     const normalizedRole = String(viewer.role || "")
       .trim()
       .toLowerCase();
@@ -70,8 +62,6 @@ const getAllCustomers = async (req, res) => {
           .filter(Boolean),
       ),
     ];
-
-    console.log("Customer assignedIds debug:", assignedIds.length);
 
     if (normalizedRole === "staff" && assignedIds.length === 0) {
       return res.status(200).json({
