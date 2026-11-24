@@ -24,7 +24,11 @@ module.exports = (sequelize) => {
       itemType: DataTypes.STRING,
       quote: DataTypes.STRING,
       price: DataTypes.FLOAT,
-      receivableDebt: { type: DataTypes.FLOAT, allowNull: false, defaultValue: 0 },
+      receivableDebt: {
+        type: DataTypes.FLOAT,
+        allowNull: false,
+        defaultValue: 0,
+      },
       rentalDays: { type: DataTypes.INTEGER, defaultValue: 0 },
       paymentMethod: DataTypes.STRING,
       customerSource: DataTypes.STRING,
@@ -34,6 +38,7 @@ module.exports = (sequelize) => {
       issue: DataTypes.TEXT,
       behaviorMetric: DataTypes.TEXT,
       isCared: { type: DataTypes.BOOLEAN, defaultValue: false },
+      statusCare: { type: DataTypes.STRING },
     },
     {
       sequelize,

@@ -175,12 +175,18 @@ const groupSumsByCustomer = (rows, valueKey) =>
     return result;
   }, {});
 
-export const getMarketingDashboard = async ({ from, to, label }, user) => {
+export const getMarketingDashboard = async ({ from, to, label, ads }, user) => {
   const invalidRange = validateDateRange(from, to);
   if (invalidRange) return invalidRange;
   if (label && !LABELS.includes(label)) {
     return { EM: "Trạng thái khách hàng không hợp lệ.", EC: 1, DT: null };
   }
+
+  const onlyAds =
+    ads === true ||
+    String(ads || "")
+      .trim()
+      .toLowerCase() === "true";
 
   const ecosystems = allowedEcosystemsFor(user);
   if (!ecosystems.length) {
@@ -191,6 +197,7 @@ export const getMarketingDashboard = async ({ from, to, label }, user) => {
         from,
         to,
         label: label || "",
+        ads: onlyAds,
         customerCount: 0,
         periodValue: 0,
         lifetimeValue: 0,
@@ -218,6 +225,8 @@ export const getMarketingDashboard = async ({ from, to, label }, user) => {
   }
 
   const customerIds = customers.map((customer) => customer.id);
+  const adsFilter = onlyAds ? { ads: true } : {};
+
   let periodSums = {};
   let lifetimeSums = {};
   if (customerIds.length) {
@@ -226,6 +235,7 @@ export const getMarketingDashboard = async ({ from, to, label }, user) => {
         where: {
           customerId: { [Op.in]: customerIds },
           date: { [Op.between]: [from, to] },
+          ...adsFilter,
         },
         attributes: [
           "customerId",
@@ -236,7 +246,10 @@ export const getMarketingDashboard = async ({ from, to, label }, user) => {
         raw: true,
       }),
       db.PurchaseHistory.findAll({
-        where: { customerId: { [Op.in]: customerIds } },
+        where: {
+          customerId: { [Op.in]: customerIds },
+          ...adsFilter,
+        },
         attributes: [
           "customerId",
           [db.Sequelize.fn("SUM", db.Sequelize.col("price")), "lifetimeValue"],
@@ -276,6 +289,10 @@ export const getMarketingDashboard = async ({ from, to, label }, user) => {
       (total, id) => total + (lifetimeSums[String(id)]?.count || 0),
       0,
     );
+
+    // Khi bật lọc Ads, bỏ qua các khách hàng không có giao dịch Ads nào
+    if (onlyAds && lifetimePurchaseCount === 0) continue;
+
     customerReports.push({
       id: customer.id,
       fullName: customer.fullName,
@@ -305,6 +322,7 @@ export const getMarketingDashboard = async ({ from, to, label }, user) => {
       from,
       to,
       label: label || "",
+      ads: onlyAds,
       customerCount: customerReports.length,
       ...totals,
       customers: customerReports,

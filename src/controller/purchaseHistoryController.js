@@ -75,6 +75,7 @@ const createPurchaseHistory = async (req, res) => {
       careStaff,
       behaviorMetric,
       isCared,
+      statusCare,
       receivableDebt,
       ads,
       ...historyData
@@ -118,6 +119,7 @@ const createPurchaseHistory = async (req, res) => {
       receivableDebt: normalizedReceivableDebt,
       behaviorMetric: behaviorMetric ?? null,
       isCared: Boolean(isCared),
+      statusCare: statusCare ?? null,
       ads: normalizeBoolean(ads),
     });
 
@@ -145,6 +147,7 @@ const updatePurchaseHistory = async (req, res) => {
       careStaff,
       behaviorMetric,
       isCared,
+      statusCare,
       receivableDebt,
       ads,
       ...updateData
@@ -177,6 +180,9 @@ const updatePurchaseHistory = async (req, res) => {
     }
     if (isCared !== undefined) {
       payloadUpdate.isCared = Boolean(isCared);
+    }
+    if (statusCare !== undefined) {
+      payloadUpdate.statusCare = statusCare;
     }
     if (ads !== undefined) {
       payloadUpdate.ads = normalizeBoolean(ads);

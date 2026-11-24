@@ -216,12 +216,29 @@ const getAllCustomers = async (req, res) => {
           : { [db.Sequelize.Op.and]: whereConditions }
         : {};
 
+    // Lấy tên bảng thực tế của PurchaseHistory trong PostgreSQL
+    const phTable = db.PurchaseHistory.getTableName();
+    const phTableName =
+      typeof phTable === "object" && phTable.tableName
+        ? `"${phTable.schema}"."${phTable.tableName}"`
+        : `"${phTable}"`;
+
+    // Subquery lấy ngày giao dịch gần nhất của từng khách hàng
+    const latestTransactionSubquery = `(
+      SELECT MAX(ph."date")
+      FROM ${phTableName} AS ph
+      WHERE ph."customerId" = "Customer"."id"
+    )`;
+
     // Thực hiện truy vấn đồng thời đếm tổng số lượng bản ghi thỏa điều kiện
     const { count, rows } = await db.Customer.findAndCountAll({
       where: whereClause,
       limit: pageSize,
       offset: offset,
-      order: [["id", "DESC"]],
+      order: [
+        [db.Sequelize.literal(`${latestTransactionSubquery} DESC NULLS LAST`)],
+        ["id", "DESC"],
+      ],
     });
 
     const totalPages = Math.ceil(count / pageSize) || 1;
