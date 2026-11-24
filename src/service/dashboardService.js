@@ -23,8 +23,15 @@ const amount = (value) => {
   return Number.isFinite(number) ? number : 0;
 };
 
+const promotionAmount = (promotions) =>
+  (Array.isArray(promotions) ? promotions : []).reduce(
+    (total, promotion) => total + amount(promotion?.event),
+    0,
+  );
+
 const emptyEcosystemTotals = () => ({
   revenue: 0,
+  totalDiscount: 0,
   totalCost: 0,
   grossCost: 0,
   grossProfit: 0,
@@ -40,7 +47,7 @@ export const getBusinessDashboard = async ({ from, to }) => {
   const [revenueRows, expenseRows] = await Promise.all([
     db.PurchaseHistory.findAll({
       where: { date: { [Op.between]: [from, to] } },
-      attributes: ["price"],
+      attributes: ["price", "promotions"],
       include: [
         {
           model: db.Customer,
@@ -74,8 +81,10 @@ export const getBusinessDashboard = async ({ from, to }) => {
 
   for (const row of revenueRows) {
     const ecosystem = row.customer?.ecosystem;
-    if (byEcosystem[ecosystem])
+    if (byEcosystem[ecosystem]) {
       byEcosystem[ecosystem].revenue += amount(row.price);
+      byEcosystem[ecosystem].totalDiscount += promotionAmount(row.promotions);
+    }
   }
 
   for (const row of expenseRows) {
@@ -114,6 +123,7 @@ export const getBusinessDashboard = async ({ from, to }) => {
 
   const overall = {
     revenue: 0,
+    totalDiscount: 0,
     totalCost: 0,
     profitBeforeTax: 0,
   };
@@ -127,6 +137,7 @@ export const getBusinessDashboard = async ({ from, to }) => {
   for (const ecosystem of ECOSYSTEMS) {
     const metrics = byEcosystem[ecosystem];
     overall.revenue += metrics.revenue;
+    overall.totalDiscount += metrics.totalDiscount;
     overall.totalCost += metrics.totalCost;
     for (const category of COST_CATEGORIES) {
       categories[category][ecosystem] = metrics.categories[category];
