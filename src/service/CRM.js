@@ -19,6 +19,7 @@ export const LABELS = [
   "báo giá",
   "Follow Up",
   "Chưa chốt",
+  "Đã đặt lịch",
   "Đã mua hàng",
   "Đã quay lại",
   "Đã giới thiệu bạn bè",
