@@ -92,8 +92,8 @@ const getAllCustomers = async (req, res) => {
     }
 
     // Nhận diện các query params từ FE gửi sang để thực hiện phân trang server-side
-    const page = parseInt(req.query.page, 10) || 1;
-    const pageSize = parseInt(req.query.pageSize, 10) || 5;
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
+    const pageSize = Math.max(1, parseInt(req.query.pageSize, 10) || 5);
     const search = (req.query.search || "").trim();
     const searchById = (
       req.query.id ||
@@ -216,21 +216,65 @@ const getAllCustomers = async (req, res) => {
           : { [db.Sequelize.Op.and]: whereConditions }
         : {};
 
-    // Lấy tên bảng thực tế của PurchaseHistory trong PostgreSQL
+    if (req.query.rowType === "transaction") {
+      const historyWhere = {};
+      if (transactionDateFrom || transactionDateTo) {
+        historyWhere.date = {};
+        if (transactionDateFrom) {
+          historyWhere.date[db.Sequelize.Op.gte] = transactionDateFrom;
+        }
+        if (transactionDateTo) {
+          historyWhere.date[db.Sequelize.Op.lte] = transactionDateTo;
+        }
+      }
+      if (req.query.ads === "true") {
+        historyWhere.ads = true;
+      }
+
+      const { count, rows } = await db.PurchaseHistory.findAndCountAll({
+        where: historyWhere,
+        include: [
+          {
+            model: db.Customer,
+            as: "customer",
+            where: whereClause,
+            required: true,
+          },
+        ],
+        limit: pageSize,
+        offset,
+        order: [
+          [db.Sequelize.literal('"PurchaseHistory"."date" DESC NULLS LAST')],
+          ["id", "DESC"],
+        ],
+      });
+      const items = rows.map((history) => {
+        const transaction = history.toJSON();
+        const customer = transaction.customer;
+        delete transaction.customer;
+        return { ...customer, purchaseHistory: transaction };
+      });
+      const totalPages = Math.ceil(count / pageSize) || 1;
+
+      return res.status(200).json({
+        EM: "Tải danh sách giao dịch phân trang thành công!",
+        EC: 0,
+        DT: { items, total: count, totalPages },
+      });
+    }
+
+    // Giữ thứ tự theo giao dịch gần nhất cho các luồng vẫn truy vấn danh sách khách hàng.
     const phTable = db.PurchaseHistory.getTableName();
     const phTableName =
       typeof phTable === "object" && phTable.tableName
         ? `"${phTable.schema}"."${phTable.tableName}"`
         : `"${phTable}"`;
-
-    // Subquery lấy ngày giao dịch gần nhất của từng khách hàng
     const latestTransactionSubquery = `(
       SELECT MAX(ph."date")
       FROM ${phTableName} AS ph
       WHERE ph."customerId" = "Customer"."id"
     )`;
 
-    // Thực hiện truy vấn đồng thời đếm tổng số lượng bản ghi thỏa điều kiện
     const { count, rows } = await db.Customer.findAndCountAll({
       where: whereClause,
       limit: pageSize,
